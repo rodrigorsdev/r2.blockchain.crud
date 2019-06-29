@@ -1,53 +1,158 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.7;
 
 contract Crud {
 
+    address payable public contractOwner;
+
+    uint constant USER_NAME_MIN_LENGTH = 3;
+
     struct User {
-        string email;
-        uint index;
+        bytes name;
+        bytes email;
     }
 
-    mapping(address => User) private users;
+    User[] users;
+    mapping(address => uint) private userAddressMap;
+    mapping(bytes => uint) private userEmailMap;
 
-    address[] private userIndex;
-
-    function userExists(address userAddress) public view returns(bool exists) {
-        if(userIndex.length == 0) {
-            return false;
-        }
-
-        return(userIndex[users[userAddress].index] == userAddress);
+    constructor () public{
+        contractOwner = msg.sender;
+        users.push(User('', ''));
     }
 
-    function insertUser(address userAddress, string memory email) public returns (uint index) {
-        require(!userExists(userAddress), 'user exists');
-        users[userAddress].email = email;
-        users[userAddress].index = userIndex.push(userAddress) -1;
-        return userIndex.length -1;
+    function kill() external {
+        require(msg.sender == contractOwner, "only the contract owner can kill this contract");
+        selfdestruct(contractOwner);
     }
 
-    function getUser(address userAddress) public view returns(string memory email, uint index) {
-        require (userExists(userAddress), "user not exists");
-        return (users[userAddress].email, users[userAddress].index);
+    modifier isUserNameMinLengthValid(
+        bytes memory _name
+    )
+    {
+        require(
+            _name.length >= USER_NAME_MIN_LENGTH,
+            'user name min length invalid'
+        );
+        _;
     }
 
-    function getUserCount() public view returns (uint count) {
-        return userIndex.length;
+    modifier userNotExists()
+    {
+        require(
+            userAddressMap[msg.sender] == 0,
+            'user exists'
+        );
+        _;
     }
 
-    function updateUserEmail(address userAddress, string memory email) public returns(bool success){
-        require (userExists(userAddress), "user not exists");
-        users[userAddress].email = email;
-        return true;
+    modifier emailNotExists(
+        bytes memory _email
+    )
+    {
+        require(
+            userEmailMap[_email] == 0,
+            'email exists'
+        );
+        _;
     }
 
-    function deleteUser(address userAddress) public returns (uint index){
-        require (userExists(userAddress), "user not exists");
-        uint rowToDelete = users[userAddress].index;
-        address keyToMove = userIndex[userIndex.length-1];
-        userIndex[rowToDelete] = keyToMove;
-        users[keyToMove].index = rowToDelete;
-        userIndex.length--;
-        return rowToDelete;
+    modifier userExists(
+        bytes memory _email
+    )
+    {
+        require(
+            userEmailMap[_email] != 0,
+            'user not exists'
+        );
+        _;
+    }
+
+    modifier isOwner(bytes memory _email)
+    {
+        uint indexEmail = userEmailMap[_email];
+        uint indexOwner = userAddressMap[msg.sender];
+        require(
+            indexEmail == indexOwner,
+            'is not the owner'
+        );
+        _;
+    }
+
+    event UserAdded(
+        uint _index,
+        bytes _name,
+        bytes _email
+    );
+
+    event UserUpdated(
+        bytes _name,
+        bytes _email
+    );
+
+    function add(
+        bytes memory _name,
+        bytes memory _email
+    ) public
+        isUserNameMinLengthValid(_name)
+        userNotExists()
+        emailNotExists(_email)
+      payable
+    {
+        users.push(User(_name, _email));
+        uint index = users.length - 1;
+        userAddressMap[msg.sender] = index;
+        userEmailMap[_email] = index;
+
+        emit UserAdded(index, _name, _email);
+    }
+
+    function exists(
+        bytes memory _email
+    ) public view returns(bool)
+    {
+        return userEmailMap[_email] != 0;
+    }
+
+    function getUserByEmail(
+        bytes memory _email
+    ) public view
+        userExists(_email)
+      returns(bytes memory)
+    {
+        return users[userEmailMap[_email]].name;
+    }
+
+    function getUsersLength() public view returns(uint)
+    {
+        return users.length;
+    }
+
+    function update(
+        bytes memory _name,
+        bytes memory _email
+    ) public
+        isOwner(_email)
+        isUserNameMinLengthValid(_name)
+        userExists(_email)
+      payable
+    {
+        users[userEmailMap[_email]].name = _name;
+        emit UserUpdated(_name, _email);
+    }
+
+    function remove(
+        bytes memory _email
+    ) public
+        isOwner(_email)
+        userExists(_email)
+      payable
+    {
+        uint indexToRemove = userEmailMap[_email];
+        User memory user = users[users.length - 1];
+        users[indexToRemove] = user;
+        userEmailMap[user.email] = indexToRemove;
+        ///TO DO
+        users.length--;
+
     }
 }

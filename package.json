@@ -1,5 +1,5 @@
 {
-  "name": "r2.blockchain.crud",
+  "name": "r2.eth.crud",
   "version": "1.0.0",
   "description": "",
   "main": "truffle-config.js",
@@ -11,14 +11,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rodrigorsdev/r2.blockchain.crud.git"
+    "url": "git+https://github.com/rodrigorsdev/r2.eth.crud.git"
   },
   "author": "Rodrigo Oliveira",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/rodrigorsdev/r2.blockchain.crud/issues"
+    "url": "https://github.com/rodrigorsdev/r2.eth.crud/issues"
   },
-  "homepage": "https://github.com/rodrigorsdev/r2.blockchain.crud#readme",
+  "homepage": "https://github.com/rodrigorsdev/r2.eth.crud#readme",
   "dependencies": {
     "node": "^11.14.0",
     "truffle-assertions": "^0.8.2"
